@@ -3,9 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <title>sheet2gmap</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <style>
       #map {
-        height: 100%;
+        height: 70%;
       }
       html,
       body {
@@ -15,10 +16,10 @@
       }
       #sidebar {
         position: absolute;
-        top: 10%;
-        left: 72%;
-        width: 25%;
-        height: 80%;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 30%;
         overflow-y: scroll;
         border: 1px solid #666;
         padding: 6px;
@@ -150,7 +151,7 @@
         }
 
         document.getElementById("sidebar").innerHTML =
-          `<a target="_blank" href="https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?usp=sharing">元データ(Google スプレッドシート)</a><br /><a target="_blank" href="https://github.com/champierre/sheet2gmap">ソースコード(GitHub)</a><br /><br />` +
+          `<a target="_blank" href="https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?usp=sharing">元データ(Google スプレッドシート)</a><br />` +
           sidebar_html;
       }
 

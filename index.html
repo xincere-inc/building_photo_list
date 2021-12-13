@@ -48,6 +48,7 @@
       var marker = [];
       var infoWindow = [];
       var windowOpened;
+      var currentPosMarker;
       const geoOptions = {
         enableHighAccuracy: true, //精度を高める
         timeout: 6000, //タイムアウトは6秒
@@ -77,7 +78,10 @@
           var lat = pos.coords.latitude;
           var lng = pos.coords.longitude;
           var latlng = new google.maps.LatLng(lat, lng); //中心の緯度, 経度
-          var marker = new google.maps.Marker({
+          if (currentPosMarker) {
+            currentPosMarker.setPosition(latlng)
+          } else {
+          currentPosMarker = new google.maps.Marker({
             position: latlng, //マーカーの位置（必須）
             map: map, //マーカーを表示する地図
             icon: {
@@ -85,6 +89,7 @@
               scaledSize: new google.maps.Size(60, 60), //サイズ
             },
           });
+        }
 
           map.panTo(latlng);
         }

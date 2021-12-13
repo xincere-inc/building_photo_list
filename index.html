@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>sheet2gmap</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <style>
+      #map {
+        height: 70%;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #sidebar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 30%;
+        overflow-y: scroll;
+        border: 1px solid #666;
+        padding: 6px;
+        background-color: white;
+        font-family: Meriyo UI;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <td><div id="sidebar"></div></td>
+    <script src="constants.js"></script>
+    <script
+      src="https://maps.googleapis.com/maps/api/js?language=ja&region=JP&key=AIzaSyBOjE6P_stdN7Zo9vxy6oZcl-TJEKxADmo&callback=initMap"
+      async
+      defer
+    ></script>
+    <script>
+      var map;
+      var marker = [];
+      var infoWindow = [];
+      var windowOpened;
+      const geoOptions = {
+        enableHighAccuracy: true, //精度を高める
+        timeout: 6000, //タイムアウトは6秒
+        maximumAge: 0, //キャッシュはさせない
+      };
+
+      function parseData(data) {
+        var keys = data.values[0];
+        var markerData = [];
+        data.values.forEach(function (value, i) {
+          if (i > 0) {
+            var hash = {};
+            value.forEach(function (d, j) {
+              hash[keys[j]] = d;
+            });
+            markerData.push(hash);
+          }
+        });
+        return markerData;
+      }
+
+      function initMap() {
+        var target = document.getElementById("map");
+        var centerp = { lat: 35.6679191, lng: 139.4606805 };
+
+        map = new google.maps.Map(target, {
+          center: centerp,
+          zoom: 18,
+        });
+
+        navigator.geolocation.getCurrentPosition(success, fail);
+
+        var request = new XMLHttpRequest();
+        request.open(
+          "GET",
+          `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/未撮影一覧?key=${API_KEY}`,
+          true
+        );
+        request.responseType = "json";
+
+        request.onload = function () {
+          let totalLat = 0;
+          let totalLng = 0;
+          let dataLength = 0;
+
+          var data = this.response;
+          var markerData = parseData(data);
+          setData(markerData);
+        };
+
+        function success(pos) {
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          var latlng = new google.maps.LatLng(lat, lng); //中心の緯度, 経度
+          var marker = new google.maps.Marker({
+            position: latlng, //マーカーの位置（必須）
+            map: map, //マーカーを表示する地図
+            icon: {
+              url: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
+              scaledSize: new google.maps.Size(60, 60), //サイズ
+            },
+          });
+
+          map.panTo(latlng);
+        }
+        function fail(error) {
+          alert("位置情報の取得に失敗しました。エラーコード：" + error.code);
+          var latlng = new google.maps.LatLng(35.6812405, 139.7649361); //東京駅
+          var map = new google.maps.Map(document.getElementById("maps"), {
+            zoom: 10,
+            center: latlng,
+          });
+        }
+        request.send();
+      }
+
+      function addMarker(i, data, status) {
+        var markerLatLng = new google.maps.LatLng({
+          lat: Number(data["緯度"]),
+          lng: Number(data["経度"]),
+        });
+
+        let iconType = "https://maps.google.com/mapfiles/ms/icons/red-dot.png";
+        if (status === "done") {
+          iconType = "https://maps.google.com/mapfiles/ms/icons/blue-dot.png";
+        }
+
+        marker[i] = new google.maps.Marker({
+          position: markerLatLng,
+          map: map,
+          icon: {
+            url: iconType,
+            scaledSize: new google.maps.Size(40, 40), //サイズ
+          },
+        });
+
+        var info =
+          '<div style="font-size:18px;font-weight:bold;margin-bottom:10px;">' +
+          data["建物名"] +
+          `<p style="font-size:16px;">(${data["住所"]})</p>`;
+        ("</div>");
+        infoWindow[i] = new google.maps.InfoWindow({
+          content: info,
+        });
+
+        markerEvent(i);
+      }
+
+      function setData(markerData) {
+        var sidebar_html = "";
+        for (var i = 0; i < markerData.length; i++) {
+          var latitude = markerData[i]["緯度"];
+          if (!latitude) {
+            continue;
+          }
+          const status = markerData[i]["ステータス"];
+          const id = markerData[i]["id"];
+          addMarker(id, markerData[i], status);
+          const name = markerData[i]["建物名"];
+          const address = markerData[i]["住所"];
+          let statusLabel = "";
+          let statusColor = "black";
+          if (status === "done") {
+            statusLabel = "撮影済 ";
+            statusColor = "red";
+          }
+
+          sidebar_html += `<p style="color: ${statusColor};"><b>${id}</b>  ${statusLabel}<a href="javascript:openWindow(${id})">${name}(${address})<\/a></p>`;
+        }
+
+        document.getElementById("sidebar").innerHTML =
+          `<a target="_blank" href="https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?usp=sharing">元データ(Google スプレッドシート)</a><br />` +
+          sidebar_html;
+      }
+
+      function markerEvent(i) {
+        marker[i].addListener("click", function () {
+          openWindow(i);
+        });
+      }
+
+      function openWindow(i) {
+        if (windowOpened) {
+          windowOpened.close();
+        }
+        infoWindow[i].open(map, marker[i]);
+        map.panTo(
+          new google.maps.LatLng(
+            marker[i].position.lat(),
+            marker[i].position.lng()
+          )
+        );
+        console.log(marker[i]);
+        windowOpened = infoWindow[i];
+      }
+    </script>
+  </body>
+</html>

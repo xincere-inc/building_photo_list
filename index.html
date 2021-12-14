@@ -144,6 +144,8 @@
         let iconType = "https://maps.google.com/mapfiles/ms/icons/red-dot.png";
         if (status === "done") {
           iconType = "https://maps.google.com/mapfiles/ms/icons/blue-dot.png";
+        } else if (status === 'スルー') {
+          iconType = "http://labs.google.com/ridefinder/images/mm_20_gray.png";
         }
 
         marker[i] = new google.maps.Marker({
@@ -184,6 +186,9 @@
           if (status === "done") {
             statusLabel = "撮影済 ";
             statusColor = "red";
+          } else if (status === 'スルー') {
+            statusLabel = "スルー: ";
+            statusColor = "gray";
           }
 
           sidebar_html += `<p style="color: ${statusColor};"><b>${id}</b>  ${statusLabel}<a href="javascript:openWindow(${id})">${name}(${address})<\/a></p>`;
